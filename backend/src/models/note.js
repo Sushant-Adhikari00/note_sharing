@@ -1,10 +1,26 @@
 import mongoose from "mongoose";
+import { getNotesDB } from "../config/db.js";
 
-const noteSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  content: { type: String, required: true },
-  fileUrl: { type: String, required: true },
-  fileType: { type: String, required: true }, // MIME type
-}, { timestamps: true });
+const noteSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    fileUrl: String,
+    owner: { type: String, required: true }, // userId from auth
+  },
+  { timestamps: true }
+);
 
-export default mongoose.model("Note", noteSchema);
+let noteModel = null;
+
+export const getNoteModel = () => {
+  if (noteModel) {
+    return noteModel;
+  }
+  const db = getNotesDB();
+  if (!db) {
+    throw new Error("Notes database not initialized");
+  }
+  noteModel = db.model("Note", noteSchema);
+  return noteModel;
+};

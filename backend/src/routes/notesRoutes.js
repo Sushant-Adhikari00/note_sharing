@@ -1,13 +1,17 @@
 import express from "express";
 import { getAllNotes, getNoteById, createNote, updateNote, deleteNote } from "../controllers/notesController.js";
 import { uploadNotes } from "../middleware/uploadNotes.js";
+import { auth } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getAllNotes);
-router.get("/:id", getNoteById);
-router.post("/upload", uploadNotes.single("file"), createNote);
-router.put("/:id", uploadNotes.single("file"), updateNote);
-router.delete("/:id", deleteNote);
+// Public routes
+router.get("/", getAllNotes);       
+router.get("/:id", getNoteById);     
+
+// Restricted routes
+router.post("/", auth, uploadNotes.single("file"), createNote);
+router.put("/:id", auth, uploadNotes.single("file"), updateNote);
+router.delete("/:id", auth, deleteNote);
 
 export default router;

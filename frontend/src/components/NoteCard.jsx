@@ -1,59 +1,67 @@
 import { PenSquareIcon, Trash2Icon } from 'lucide-react';
+import { Link } from "react-router";
 import { formatDate } from '../lib/utils.js';
 import api from '../lib/axios.js'; 
 import toast from 'react-hot-toast';
+import { useContext } from 'react';
+import { AuthContext } from '../context/authContext.jsx';
 
 const NoteCard = ({ note, setNotes }) => {
+  const { user } = useContext(AuthContext);
 
-    const handleDelete = async (e, id) => {
-        e.preventDefault();
-
-        if(!window.confirm("Are you sure to delete this note??")) return;
-
-        try {
-            await api.delete(`/notes/${id}`);
-            setNotes((prev) => prev.filter(note => note._id !== id)); // remove deleted note
-            toast.success("Note deleted successfully");
-        } catch (error) {
-            console.log("Error in handleDelete", error);
-            toast.error("Failed to delete note");
-        }
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure to delete this note?")) return;
+    try {
+      const token = user.token || localStorage.getItem("token");
+      await api.delete(`/notes/${note._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotes((prev) => prev.filter(n => n._id !== note._id));
+      toast.success("Note deleted successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to delete note");
     }
+  };
 
-    return (
-        <div className='card bg-base-100 hover:shadow-lg transition-all duration-200 border-t-4 border-solid border-[#00FF90]'>
-            <div className='card-body'>
-                <h3 className='card-title text-base-content'>{note.title}</h3>
-                <p className='text-base-content/70 line-clamp-3'>{note.content}</p>
+  const isOwner = user && user.id === note.owner;
 
-                {/* File View Button */}
-                {note.fileUrl && (
-                    <div className='flex gap-2 mt-2'>
-                        <a
-                            href={`http://localhost:5001/${note.fileUrl.replace("\\","/")}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className='btn btn-sm btn-outline'
-                        >
-                            View
-                        </a>
-                    </div>
-                )}
+  return (
+    <div className='card bg-base-100 hover:shadow-lg transition-all duration-200 border-t-4 border-solid border-[#00FF90]'>
+      <div className='card-body'>
+        <h3 className='card-title'>{note.title}</h3>
+        <p className='line-clamp-3'>{note.content}</p>
 
-                <div className='card-actions justify-between items-center mt-4'>
-                    <span className='text-sm text-base-content/60'>
-                        {formatDate(new Date(note.createdAt))}
-                    </span>
-                    <div className='flex items-center gap-1'>
-                        <PenSquareIcon className='size-4'/>
-                        <button className='btn btn-ghost btn-xs text-error' onClick={(e) => handleDelete(e, note._id)}>
-                            <Trash2Icon className='size-4'/>
-                        </button>
-                    </div>
-                </div>
+        {note.fileUrl && (
+          <a
+            href={`http://localhost:5001/${note.fileUrl.replace("\\", "/")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className='btn btn-sm btn-outline mt-2'
+          >
+            View File
+          </a>
+        )}
+
+        <div className='card-actions justify-between items-center mt-4'>
+          <span className='text-sm text-base-content/60'>
+            {formatDate(new Date(note.createdAt))}
+          </span>
+
+          {isOwner && (
+            <div className='flex items-center gap-1'>
+              <Link to={`/update/${note._id}`} className="btn btn-ghost btn-xs text-primary">
+                <PenSquareIcon className='size-4' />
+              </Link>
+              <button className='btn btn-ghost btn-xs text-error' onClick={handleDelete}>
+                <Trash2Icon className='size-4' />
+              </button>
             </div>
+          )}
         </div>
-    )
-}
+      </div>
+    </div>
+  );
+};
 
 export default NoteCard;

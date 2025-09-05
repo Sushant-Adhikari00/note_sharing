@@ -1,22 +1,37 @@
-import { PlusIcon } from 'lucide-react'
-import {Link} from "react-router"
+import { useContext } from "react";
+import { Link, useNavigate } from "react-router";
+import { AuthContext } from "../context/authContext.jsx";
 
 const Navbar = () => {
-  return (<header className='bg-base-300 border-b border-base-content/10'>
-    <div className='mx-auto max-w-6xl p-4 '>
-        <div className='flex items-center justify-between'>
-            <h1 className='text-3xl font-bold text-primary font-mono tracking-tight'>Note Sharing</h1>
-            
-            <div className="flex items-center gap-4">
-                <Link to={"/create"} className="btn btn-primary">
-                    <PlusIcon className='size-5'/>
-                    <span>New Note</span>
-                </Link>
-            </div>
-        </div>
-    </div>
+  const { user, setUser } = useContext(AuthContext);
+  const navigate = useNavigate();
 
-  </header>)
-}
+  const handleLogout = () => {
+    setUser(null);             // clear context
+    localStorage.removeItem("token"); // remove JWT
+    localStorage.removeItem("user");  // remove user info
+    navigate("/login");        // redirect to login page
+  };
+
+  return (
+    <nav className="bg-base-100 shadow-md p-4 flex justify-between items-center">
+      <Link to="/" className="font-bold text-xl">NotesApp</Link>
+      <div className="flex items-center space-x-4">
+        {user ? (
+          <>
+            <span>Welcome, {user.name}</span>
+            <Link to="/create" className="btn btn-sm btn-primary">Create Note</Link>
+            <button onClick={handleLogout} className="btn btn-sm btn-secondary">Logout</button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="btn btn-sm btn-primary">Login</Link>
+            <Link to="/signup" className="btn btn-sm btn-secondary">Sign Up</Link>
+          </>
+        )}
+      </div>
+    </nav>
+  );
+};
 
 export default Navbar;

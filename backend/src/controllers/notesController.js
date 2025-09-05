@@ -1,94 +1,110 @@
-import Note from "../models/note.js";
-import fs from "fs";
-import path from "path";
+import mongoose from "mongoose";
+import { getNoteModel } from "../models/note.js";
 
-// GET all notes
-export async function getAllNotes(req, res) {
+// GET ALL NOTES – PUBLIC
+// GET ALL NOTES
+export const getAllNotes = async (req, res) => {
   try {
-    const notes = await Note.find().sort({ createdAt: -1 });
-    res.status(200).json(notes);
+    const Note = getNoteModel();
+    // Fetch all notes without filtering by user
+    const notes = await Note.find(); 
+    res.json(notes);
   } catch (error) {
-    console.error("Error in getAllNotes:", error.message, error.stack);
+    console.error("Error fetching notes:", error);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
-// GET note by ID
-export async function getNoteById(req, res) {
+
+// GET SINGLE NOTE – PUBLIC
+export const getNoteById = async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const Note = getNoteModel();
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid note ID" });
+
+    const note = await Note.findById(id);
     if (!note) return res.status(404).json({ message: "Note not found" });
-    res.status(200).json(note);
+
+    res.status(200).json(note); // anyone can view
   } catch (error) {
-    console.error("Error in getNoteById:", error.message, error.stack);
+    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
-// CREATE a note
-export async function createNote(req, res) {
+// CREATE NOTE – AUTH REQUIRED
+export const createNote = async (req, res) => {
   try {
+    const Note = getNoteModel();
     const { title, content } = req.body;
-    if (!req.file) return res.status(400).json({ message: "File is required" });
+    if (!title || !content)
+      return res.status(400).json({ message: "Title and content are required" });
+
+    const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
     const note = new Note({
       title,
       content,
-      fileUrl: req.file.path,
-      fileType: req.file.mimetype,
+      fileUrl,
+      owner: req.user.id, // only authenticated users
     });
 
     const savedNote = await note.save();
     res.status(201).json(savedNote);
   } catch (error) {
-    console.error("Error in createNote:", error.message, error.stack);
+    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
-// UPDATE a note
-export async function updateNote(req, res) {
+// UPDATE NOTE – AUTH + OWNER/ADMIN
+export const updateNote = async (req, res) => {
   try {
+    const Note = getNoteModel();
     const { id } = req.params;
     const { title, content } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid note ID" });
 
     const note = await Note.findById(id);
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    if (req.file) {
-      const filePath = path.resolve(note.fileUrl);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (note.owner.toString() !== req.user.id && req.user.role !== "admin")
+      return res.status(403).json({ message: "Unauthorized" });
 
-      note.fileUrl = req.file.path;
-      note.fileType = req.file.mimetype;
-    }
-
-    if (title) note.title = title;
-    if (content) note.content = content;
+    note.title = title || note.title;
+    note.content = content || note.content;
+    if (req.file) note.fileUrl = `/uploads/${req.file.filename}`;
 
     const updatedNote = await note.save();
     res.status(200).json(updatedNote);
-
   } catch (error) {
-    console.error("Error in updateNote:", error.message, error.stack);
+    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
-// DELETE a note
-export async function deleteNote(req, res) {
+// DELETE NOTE – AUTH + OWNER/ADMIN
+export const deleteNote = async (req, res) => {
   try {
-    const note = await Note.findById(req.params.id);
+    const Note = getNoteModel();
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id))
+      return res.status(400).json({ message: "Invalid note ID" });
+
+    const note = await Note.findById(id);
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    const filePath = path.resolve(note.fileUrl);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    if (note.owner.toString() !== req.user.id && req.user.role !== "admin")
+      return res.status(403).json({ message: "Unauthorized" });
 
-    await Note.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Note deleted successfully!" });
-
+    await note.deleteOne();
+    res.status(200).json({ message: "Note deleted successfully" });
   } catch (error) {
-    console.error("Error in deleteNote:", error.message, error.stack);
+    console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
