@@ -108,3 +108,69 @@ export const deleteNote = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+// ADD/UPDATE RATING – AUTH REQUIRED
+export const rateNote = async (req, res) => {
+  try {
+    const Note = getNoteModel();
+    const { id } = req.params;
+    const { value } = req.body; // 1–5
+
+    if (!value || value < 1 || value > 5)
+      return res.status(400).json({ message: "Rating must be 1–5" });
+
+    const note = await Note.findById(id);
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    const existing = note.ratings.find(r => r.user.toString() === req.user.id);
+    if (existing) existing.value = value;
+    else note.ratings.push({ user: req.user.id, value });
+
+    await note.save();
+    res.status(200).json(note.ratings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// GET RATING – PUBLIC
+export const getRating = async (req, res) => {
+  try {
+    const Note = getNoteModel();
+    const { id } = req.params;
+
+    const note = await Note.findById(id);
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    const avg = note.ratings.reduce((sum, r) => sum + r.value, 0) / (note.ratings.length || 1);
+    res.status(200).json({ average: avg, total: note.ratings.length });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+// SEARCH NOTES – PUBLIC
+export const searchNotes = async (req, res) => {
+  try {
+    const Note = getNoteModel();
+    const { q } = req.query;
+
+    if (!q) return res.status(400).json({ message: "Search query required" });
+
+    const notes = await Note.find({
+      $or: [
+        { title: { $regex: q, $options: "i" } },
+        { content: { $regex: q, $options: "i" } }
+      ]
+    });
+
+    res.status(200).json(notes);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

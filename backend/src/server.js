@@ -6,6 +6,7 @@ import path from 'path'
 
 import notesRoutes from "./routes/notesRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/admin.js";
 import { connectDB } from "./config/db.js";
 import rateLimiter from "./middleware/rateLimiter.js";
 
@@ -31,6 +32,8 @@ const startServer = async () => {
 
   app.use("/api/notes", notesRoutes);
   app.use("/api/auth", authRoutes);
+  app.use("/api/admin", adminRoutes);
+
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on PORT: ${PORT}`);

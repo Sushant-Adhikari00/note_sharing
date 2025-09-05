@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { ArrowLeftIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
 import { AuthContext } from "../context/authContext";
@@ -16,7 +16,6 @@ const CreatePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!title.trim() || !content.trim()) return toast.error("Title and content are required");
     if (!file) return toast.error("File is required");
 
@@ -60,14 +59,23 @@ const CreatePage = () => {
     }
   };
 
+  const goBack = () => {
+    toast("Returning to notes!");
+    navigate("/");
+  };
+
   return (
-    <div className="min-h-screen bg-base-200">
+    <div className="min-h-screen bg-base-200 relative">
+      {/* Back button in top-left corner */}
+      <button
+        onClick={goBack}
+        className="btn btn-ghost absolute top-4 left-4 flex items-center gap-2"
+      >
+        <ArrowLeftIcon className="size-5" /> Back to Notes
+      </button>
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <Link to="/" className="btn btn-ghost mb-6 flex items-center gap-2">
-            <ArrowLeftIcon className="size-5" /> Back to Notes
-          </Link>
-
           <div className="card bg-base-100 shadow-md">
             <div className="card-body">
               <h2 className="card-title text-2xl mb-4">Create New Note</h2>
