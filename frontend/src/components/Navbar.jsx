@@ -25,9 +25,13 @@ const Navbar = () => {
           </>
         ) : (
           <>
-            <Link to="/login" className="btn btn-sm btn-primary">Login</Link>
-            <Link to="/signup" className="btn btn-sm btn-secondary">Sign Up</Link>
-          </>
+        <Link to="/login" className="btn btn-sm btn-primary py-2 px-4">
+          Login
+        </Link>
+        <Link to="/signup" className="btn btn-sm btn-secondary py-2 px-4">
+          Sign Up
+        </Link>
+      </>
         )}
       </div>
     </nav>

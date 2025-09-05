@@ -11,24 +11,26 @@ const LoginPage = () => {
   const { setUser } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!email || !password) return toast.error("All fields are required");
+const handleLogin = async (e) => {
+  e.preventDefault();
+  if (!email || !password) return toast.error("All fields are required");
 
-    setLoading(true);
-    try {
-      const res = await api.post("/auth/login", { email, password });
-      setUser(res.data.user);          // update context
-      localStorage.setItem("token", res.data.token); // save JWT
-      toast.success("Login successful!");
-      navigate("/");                   // redirect to home
-    } catch (error) {
-      console.error("Login error:", error);
-      toast.error(error.response?.data?.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const res = await api.post("/auth/login", { email, password });
+    const loggedInUser = { ...res.data.user, token: res.data.token };
+    setUser(loggedInUser);
+    localStorage.setItem("user", JSON.stringify(loggedInUser));
+    toast.success("Login successful!");
+    navigate("/"); // redirect to homepage
+  } catch (error) {
+    console.error("Login error:", error);
+    toast.error(error.response?.data?.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
    <div className="min-h-screen flex items-center justify-center bg-base-200">
