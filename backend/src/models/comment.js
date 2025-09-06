@@ -1,4 +1,6 @@
+// src/models/commentModel.js
 import mongoose from "mongoose";
+import { getNotesDB } from "../config/db.js";
 
 const commentSchema = new mongoose.Schema(
   {
@@ -9,9 +11,11 @@ const commentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+let commentModel;
 export const getCommentModel = () => {
-  if (!mongoose.models.Comment) {
-    return mongoose.model("Comment", commentSchema);
+  const db = getNotesDB();
+  if (!commentModel) {
+    commentModel = db.model("Comment", commentSchema);
   }
-  return mongoose.models.Comment;
+  return commentModel;
 };

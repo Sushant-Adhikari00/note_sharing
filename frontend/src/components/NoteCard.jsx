@@ -3,16 +3,30 @@ import { Link } from "react-router";
 import { formatDate } from '../lib/utils.js';
 import api from '../lib/axios.js'; 
 import toast from 'react-hot-toast';
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AuthContext } from '../context/authContext.jsx';
 
 const NoteCard = ({ note, setNotes }) => {
   const { user } = useContext(AuthContext);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [comments, setComments] = useState(note.comments || []); // local state
 
   // Determine if current user is owner
   const isOwner = user && note.owner && (user.id === (note.owner._id || note.owner).toString());
+
+  // Fetch comments on load
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        const res = await api.get(`/notes/${note._id}/comments`);
+        setComments(res.data);
+      } catch (err) {
+        console.error("Fetch comments error:", err);
+      }
+    };
+    fetchComments();
+  }, [note._id]);
 
   // Delete Note
   const handleDelete = async () => {
@@ -32,6 +46,7 @@ const NoteCard = ({ note, setNotes }) => {
   const handleComment = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return toast.error("Comment cannot be empty");
+
     try {
       setLoading(true);
       const token = user?.token || localStorage.getItem("token");
@@ -42,20 +57,30 @@ const NoteCard = ({ note, setNotes }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Update note's comments locally
-      setNotes(prev =>
-        prev.map(n => n._id === note._id 
-          ? { ...n, comments: [...(n.comments || []), res.data] } 
-          : n
-        )
-      );
-
+      setComments(prev => [...prev, res.data]); // update local state
       setComment("");
       toast.success("Comment added!");
     } catch (error) {
       console.error("Comment error:", error);
       toast.error(error.response?.data?.message || "Failed to add comment");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Comment
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm("Delete this comment?")) return;
+    try {
+      const token = user?.token || localStorage.getItem("token");
+      await api.delete(`/notes/comments/${commentId}`, { headers: { Authorization: `Bearer ${token}` } });
+
+      setComments(prev => prev.filter(c => c._id !== commentId));
+      toast.success("Comment deleted");
+    } catch (err) {
+      console.error("Delete comment error:", err);
+      toast.error(err.response?.data?.message || "Failed to delete comment");
+    }
   };
 
   // Add Rating
@@ -138,11 +163,27 @@ const NoteCard = ({ note, setNotes }) => {
             </form>
           )}
           <ul className="mt-2 space-y-1">
-            {note.comments?.map((c, idx) => (
-              <li key={idx} className="text-sm text-gray-600">
-                <strong>{c.user?.name || "Unknown"}:</strong> {c.content}
-              </li>
-            ))}
+            {comments.map((c) => {
+              const canDelete = user && (c.user?._id === user.id || user.role === "admin");
+              return (
+                <li key={c._id} className="text-sm text-gray-600 flex justify-between items-center">
+                  <span>
+                    • {c.content || c.text}{" "}
+                    <span className="text-xs text-gray-400">
+                      - {c.user?.name || "Unknown"}
+                    </span>
+                  </span>
+                  {canDelete && (
+                    <button
+                      className="btn btn-ghost btn-xs text-error"
+                      onClick={() => handleDeleteComment(c._id)}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 

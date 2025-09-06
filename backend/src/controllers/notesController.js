@@ -2,47 +2,58 @@ import mongoose from "mongoose";
 import { getNoteModel } from "../models/note.js";
 import { getUserModel } from "../models/user.js";
 
-// GET ALL NOTES – PUBLIC
+// GET ALL NOTES
 export const getAllNotes = async (req, res) => {
   try {
     const Note = getNoteModel();
-    const User = getUserModel(); // usersDB connection
+    const User = getUserModel();
 
+    // fetch all notes from notesDB
     const notes = await Note.find().sort({ createdAt: -1 });
 
-    // Manual populate using user IDs
-    const notesWithOwner = await Promise.all(
-      notes.map(async (note) => {
-        const owner = await User.findById(note.owner).select("name email");
-        return { ...note.toObject(), owner };
-      })
-    );
+    // if there are no notes, return empty
+    if (!notes.length) return res.json([]);
+
+    // fetch all unique user IDs from notes
+    const ownerIds = notes.map(n => n.owner);
+    const uniqueOwnerIds = [...new Set(ownerIds.map(id => id.toString()))];
+
+    // fetch all users from usersDB in one go
+    const users = await User.find({ _id: { $in: uniqueOwnerIds } }).select("name email");
+
+    // create lookup table { userId: userObject }
+    const userMap = {};
+    users.forEach(u => { userMap[u._id.toString()] = u; });
+
+    // attach user to each note
+    const notesWithOwner = notes.map(note => {
+      const owner = userMap[note.owner.toString()] || null;
+      return { ...note.toObject(), owner };
+    });
 
     res.json(notesWithOwner);
   } catch (error) {
-    console.error("Error fetching notes:", error);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error fetching notes:", error.message, error.stack);
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
 
-// GET SINGLE NOTE – PUBLIC
+// GET SINGLE NOTE
 export const getNoteById = async (req, res) => {
   try {
     const Note = getNoteModel();
-    const User = getUserModel();
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ message: "Invalid note ID" });
 
-    const note = await Note.findById(id);
+    const note = await Note.findById(id)
+      .populate("owner", "name email")
+      .populate("comments.user", "name email");
+
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    // Manual populate
-    const owner = await User.findById(note.owner).select("name email");
-    const populatedNote = { ...note.toObject(), owner };
-
-    res.status(200).json(populatedNote);
+    res.status(200).json(note);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });

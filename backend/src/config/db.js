@@ -6,9 +6,15 @@ let usersDB;
 // Connect both DBs
 export const connectDB = async () => {
   try {
-    notesDB = await mongoose.createConnection(process.env.MONGO_URI_NOTES);
+    notesDB = await mongoose.createConnection(process.env.MONGO_URI_NOTES,{
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
-    usersDB = await mongoose.createConnection(process.env.MONGO_URI_USERS);
+    usersDB = await mongoose.createConnection(process.env.MONGO_URI_USERS,{
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
     console.log("Both DBs connected successfully");
   } catch (error) {

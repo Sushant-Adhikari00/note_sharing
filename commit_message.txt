@@ -1,0 +1,5 @@
+Fix: Password reset double hashing issue
+
+Resolved an issue where newly reset passwords were not working due to double hashing. The explicit hashing in `authController.js`'s `resetPassword` function was removed, allowing the `user.js` pre-save hook to handle hashing consistently.
+
+Also includes other recent changes and new files.
