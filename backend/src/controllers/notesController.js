@@ -1,44 +1,62 @@
 import mongoose from "mongoose";
 import { getNoteModel } from "../models/note.js";
+import { getUserModel } from "../models/user.js";
 
 // GET ALL NOTES – PUBLIC
-// GET ALL NOTES
 export const getAllNotes = async (req, res) => {
   try {
     const Note = getNoteModel();
-    // Fetch all notes without filtering by user
-    const notes = await Note.find(); 
-    res.json(notes);
+    const User = getUserModel(); // usersDB connection
+
+    const notes = await Note.find().sort({ createdAt: -1 });
+
+    // Manual populate using user IDs
+    const notesWithOwner = await Promise.all(
+      notes.map(async (note) => {
+        const owner = await User.findById(note.owner).select("name email");
+        return { ...note.toObject(), owner };
+      })
+    );
+
+    res.json(notesWithOwner);
   } catch (error) {
     console.error("Error fetching notes:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-
 // GET SINGLE NOTE – PUBLIC
 export const getNoteById = async (req, res) => {
   try {
     const Note = getNoteModel();
+    const User = getUserModel();
     const { id } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ message: "Invalid note ID" });
 
     const note = await Note.findById(id);
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    res.status(200).json(note); // anyone can view
+    // Manual populate
+    const owner = await User.findById(note.owner).select("name email");
+    const populatedNote = { ...note.toObject(), owner };
+
+    res.status(200).json(populatedNote);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
+
 // CREATE NOTE – AUTH REQUIRED
 export const createNote = async (req, res) => {
   try {
     const Note = getNoteModel();
+    const User = getUserModel();
     const { title, content } = req.body;
+
     if (!title || !content)
       return res.status(400).json({ message: "Title and content are required" });
 
@@ -48,23 +66,28 @@ export const createNote = async (req, res) => {
       title,
       content,
       fileUrl,
-      owner: req.user.id, // only authenticated users
+      owner: req.user.id,
     });
 
     const savedNote = await note.save();
-    res.status(201).json(savedNote);
+
+    // Manual populate
+    const owner = await User.findById(savedNote.owner).select("name email");
+    const populatedNote = { ...savedNote.toObject(), owner };
+
+    res.status(201).json(populatedNote);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// UPDATE NOTE – AUTH + OWNER/ADMIN
+
 export const updateNote = async (req, res) => {
   try {
     const Note = getNoteModel();
+    const User = getUserModel();
     const { id } = req.params;
-    const { title, content } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ message: "Invalid note ID" });
@@ -72,25 +95,33 @@ export const updateNote = async (req, res) => {
     const note = await Note.findById(id);
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    if (note.owner.toString() !== req.user.id && req.user.role !== "admin")
+    if (!req.user || (note.owner.toString() !== req.user.id && req.user.role !== "admin"))
       return res.status(403).json({ message: "Unauthorized" });
 
-    note.title = title || note.title;
-    note.content = content || note.content;
+    if (req.body.title) note.title = req.body.title;
+    if (req.body.content) note.content = req.body.content;
     if (req.file) note.fileUrl = `/uploads/${req.file.filename}`;
 
     const updatedNote = await note.save();
-    res.status(200).json(updatedNote);
+
+    // Manual populate
+    const owner = await User.findById(updatedNote.owner).select("name email");
+    const populatedNote = { ...updatedNote.toObject(), owner };
+
+    res.status(200).json(populatedNote);
   } catch (error) {
-    console.error(error);
+    console.error("Update note error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
 
 // DELETE NOTE – AUTH + OWNER/ADMIN
 export const deleteNote = async (req, res) => {
   try {
     const Note = getNoteModel();
+
     const { id } = req.params;
     if (!mongoose.Types.ObjectId.isValid(id))
       return res.status(400).json({ message: "Invalid note ID" });
@@ -114,6 +145,7 @@ export const deleteNote = async (req, res) => {
 export const rateNote = async (req, res) => {
   try {
     const Note = getNoteModel();
+
     const { id } = req.params;
     const { value } = req.body; // 1–5
 
@@ -139,6 +171,7 @@ export const rateNote = async (req, res) => {
 export const getRating = async (req, res) => {
   try {
     const Note = getNoteModel();
+
     const { id } = req.params;
 
     const note = await Note.findById(id);
@@ -157,6 +190,7 @@ export const getRating = async (req, res) => {
 export const searchNotes = async (req, res) => {
   try {
     const Note = getNoteModel();
+
     const { q } = req.query;
 
     if (!q) return res.status(400).json({ message: "Search query required" });

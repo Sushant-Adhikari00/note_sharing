@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import path from 'path'
-
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
 
 import notesRoutes from "./routes/notesRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
@@ -10,35 +10,42 @@ import adminRoutes from "./routes/admin.js";
 import { connectDB } from "./config/db.js";
 import rateLimiter from "./middleware/rateLimiter.js";
 
-import { fileURLToPath } from 'url';
+// Setup dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
+// Load .env
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
-
-//middleware
-app.use(cors({
-    origin: "http://localhost:5173",
-}));
-app.use (express.json());
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// Middleware
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+  })
+);
+app.use(express.json());
 app.use(rateLimiter);
 
+
+
+// serve files directly from uploads folder
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+
+// API routes
+app.use("/api/notes", notesRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 
 const startServer = async () => {
   await connectDB();
 
-  app.use("/api/notes", notesRoutes);
-  app.use("/api/auth", authRoutes);
-  app.use("/api/admin", adminRoutes);
-
-
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on PORT: ${PORT}`);
+    console.log(`Server running on http://localhost:${PORT}`);
   });
 };
 
 startServer();
-

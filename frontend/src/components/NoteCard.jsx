@@ -11,15 +11,15 @@ const NoteCard = ({ note, setNotes }) => {
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Delete Note
+  // Determine if current user is owner
+  const isOwner = user && note.owner && (user.id === (note.owner._id || note.owner).toString());
+
+  // Delete Note
   const handleDelete = async () => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
-
     try {
       const token = user?.token || localStorage.getItem("token");
-      await api.delete(`/notes/${note._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/notes/${note._id}`, { headers: { Authorization: `Bearer ${token}` } });
       setNotes(prev => prev.filter(n => n._id !== note._id));
       toast.success("Note deleted successfully");
     } catch (error) {
@@ -28,42 +28,44 @@ const NoteCard = ({ note, setNotes }) => {
     }
   };
 
-  // ✅ Add Comment
+  // Add Comment
   const handleComment = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return toast.error("Comment cannot be empty");
-
     try {
       setLoading(true);
       const token = user?.token || localStorage.getItem("token");
-      const res = await api.post(`/notes/${note._id}/comments`, { text: comment }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
 
-      setNotes(prev =>
-        prev.map(n => n._id === note._id ? res.data : n)
+      const res = await api.post(
+        `/notes/${note._id}/comments`,
+        { content: comment },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Update note's comments locally
+      setNotes(prev =>
+        prev.map(n => n._id === note._id 
+          ? { ...n, comments: [...(n.comments || []), res.data] } 
+          : n
+        )
+      );
+
       setComment("");
       toast.success("Comment added!");
     } catch (error) {
       console.error("Comment error:", error);
       toast.error(error.response?.data?.message || "Failed to add comment");
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  // ✅ Add Rating
+  // Add Rating
   const handleRating = async (value) => {
     try {
       const token = user?.token || localStorage.getItem("token");
       const res = await api.post(`/notes/${note._id}/rate`, { value }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      setNotes(prev =>
-        prev.map(n => n._id === note._id ? res.data : n)
-      );
+      setNotes(prev => prev.map(n => n._id === note._id ? res.data : n));
       toast.success("Rating submitted!");
     } catch (error) {
       console.error("Rating error:", error);
@@ -71,29 +73,27 @@ const NoteCard = ({ note, setNotes }) => {
     }
   };
 
-  // ✅ Calculate average rating
+  // Calculate average rating
   const avgRating = note.ratings?.length
     ? (note.ratings.reduce((a, r) => a + r.value, 0) / note.ratings.length).toFixed(1)
     : "No ratings";
 
-  // Only owner can edit/delete
-  const isOwner = user && user.id === note.owner;
-
   return (
     <div className='card bg-base-100 hover:shadow-lg transition-all duration-200 border-t-4 border-solid border-[#00FF90]'>
       <div className='card-body'>
+        {/* Header */}
         <div className="flex justify-between items-start">
           <h3 className='card-title'>{note.title}</h3>
-          {isOwner && (
-            <span className="badge badge-sm badge-primary ml-2">Your Note</span>
-          )}
+          {isOwner && <span className="badge badge-sm badge-primary ml-2">Your Note</span>}
         </div>
 
+        {/* Content */}
         <p className='line-clamp-3 mt-2'>{note.content}</p>
 
+        {/* File link */}
         {note.fileUrl && (
           <a
-            href={`http://localhost:5001/${note.fileUrl.replaceAll("\\", "/")}`}
+            href={`${import.meta.env.VITE_API_URL || "http://localhost:5001"}${note.fileUrl}`}
             target="_blank"
             rel="noopener noreferrer"
             className='btn btn-sm btn-outline mt-2'
@@ -102,23 +102,26 @@ const NoteCard = ({ note, setNotes }) => {
           </a>
         )}
 
-        {/* ⭐ Rating Section */}
-        <div className="mt-3">
-          <div className="flex items-center gap-1">
-            {[1,2,3,4,5].map(star => (
-              <button
-                key={star}
-                onClick={() => user && handleRating(star)}
-                className={`transition-colors ${note.ratings?.some(r => r.user === user?.id && r.value >= star) ? "text-yellow-400" : "text-gray-400"}`}
-              >
-                <StarIcon className="size-5" />
-              </button>
-            ))}
-          </div>
-          <p className="text-sm mt-1">Avg Rating: {avgRating}</p>
+        {/* Owner Info */}
+        <p className="text-sm text-gray-500 mt-1">
+          Posted by: {note.owner?.name || "Unknown"}
+        </p>
+
+        {/* Rating */}
+        <div className="mt-3 flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map(star => (
+            <button
+              key={star}
+              onClick={() => user && handleRating(star)}
+              className={`transition-colors ${note.ratings?.some(r => r.user === user?.id && r.value >= star) ? "text-yellow-400" : "text-gray-400"}`}
+            >
+              <StarIcon className="size-5" />
+            </button>
+          ))}
+          <span className="text-sm ml-2">Avg Rating: {avgRating}</span>
         </div>
 
-        {/* 💬 Comments Section */}
+        {/* Comments */}
         <div className="mt-3">
           {user && (
             <form onSubmit={handleComment} className="flex items-center gap-2">
@@ -137,18 +140,17 @@ const NoteCard = ({ note, setNotes }) => {
           <ul className="mt-2 space-y-1">
             {note.comments?.map((c, idx) => (
               <li key={idx} className="text-sm text-gray-600">
-                • {c.text}
+                <strong>{c.user?.name || "Unknown"}:</strong> {c.content}
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Footer: Date + Actions */}
+        {/* Footer */}
         <div className='card-actions justify-between items-center mt-4'>
           <span className='text-sm text-base-content/60'>
             {formatDate(new Date(note.createdAt))}
           </span>
-
           {isOwner && (
             <div className='flex items-center gap-1'>
               <Link to={`/update/${note._id}`} className="btn btn-ghost btn-xs text-primary">

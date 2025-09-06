@@ -21,20 +21,22 @@ import {
 
 const router = express.Router();
 
-// Public routes
-router.get("/", getAllNotes);       
+// Notes routes
+router.get("/", getAllNotes);
+router.get("/search", searchNotes);
 router.get("/:id", getNoteById);
 router.get("/:id/rating", getRating);
-router.get("/search", searchNotes); 
-router.get("/:noteId", getCommentsByNote);  
 
-// Restricted routes
 router.post("/", auth, uploadNotes.single("file"), createNote);
 router.put("/:id", auth, uploadNotes.single("file"), updateNote);
 router.delete("/:id", auth, deleteNote);
-router.post("/", auth, createComment);
-router.put("/:id", auth, updateComment);
-router.delete("/:id", auth, deleteComment);
 router.post("/:id/rate", auth, rateNote);
+
+// Comments routes 
+router.post("/:noteId/comments", auth, createComment);
+router.get("/:noteId/comments", getCommentsByNote);
+router.put("/comments/:id", auth, updateComment);
+router.delete("/comments/:id", auth, deleteComment);
+
 
 export default router;

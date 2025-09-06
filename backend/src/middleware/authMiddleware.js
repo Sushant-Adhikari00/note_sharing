@@ -2,9 +2,9 @@ import jwt from "jsonwebtoken";
 import { getUserModel } from "../models/user.js";
 
 export const auth = async (req, res, next) => {
-  const User = getUserModel();
+  const User = getUserModel(); //  Use dynamic model
 
-  // 1️⃣ Check for Authorization header
+  // Check for Authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "No token, authorization denied" });

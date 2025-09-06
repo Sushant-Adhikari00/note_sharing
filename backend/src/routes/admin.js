@@ -9,6 +9,7 @@ const router = express.Router();
 // GET all users
 router.get("/users", auth, admin, async (req, res) => {
   try {
+    
     const User = getUserModel();
     const users = await User.find().select("-password");
     res.json(users);

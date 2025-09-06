@@ -38,14 +38,19 @@ const UpdateNotePage = () => {
 
     const formData = new FormData();
     formData.append("title", title);
-    formData.append("content", content);
-    if (file) formData.append("file", file);
+formData.append("content", content);
+if (file) formData.append("file", file);
 
-    setLoading(true);
-    try {
-      await api.put(`/notes/upload/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+setLoading(true);
+try {
+  await api.put(`/notes/${id}`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${localStorage.getItem("token")}`, // <-- add this
+    },
+  });
+
+
 
       toast.success("Note updated successfully!");
       navigate("/");
