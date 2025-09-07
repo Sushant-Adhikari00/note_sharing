@@ -104,16 +104,16 @@ const NoteCard = ({ note, setNotes }) => {
     : "No ratings";
 
   return (
-    <div className='card bg-base-100 hover:shadow-lg transition-all duration-200 border-t-4 border-solid border-[#00FF90]'>
+    <div className='card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300 border border-primary/20'>
       <div className='card-body'>
         {/* Header */}
         <div className="flex justify-between items-start">
-          <h3 className='card-title'>{note.title}</h3>
+          <h3 className='card-title text-primary'>{note.title}</h3>
           {isOwner && <span className="badge badge-sm badge-primary ml-2">Your Note</span>}
         </div>
 
         {/* Content */}
-        <p className='line-clamp-3 mt-2'>{note.content}</p>
+        <p className='line-clamp-3 mt-2 text-base-content/80'>{note.content}</p>
 
         {/* File link */}
         {note.fileUrl && (
@@ -121,14 +121,14 @@ const NoteCard = ({ note, setNotes }) => {
             href={`${import.meta.env.VITE_API_URL || "http://localhost:5001"}${note.fileUrl}`}
             target="_blank"
             rel="noopener noreferrer"
-            className='btn btn-sm btn-outline mt-2'
+            className='btn btn-sm btn-outline btn-primary mt-2'
           >
             View File
           </a>
         )}
 
         {/* Owner Info */}
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-base-content/60 mt-1">
           Posted by: {note.owner?.name || "Unknown"}
         </p>
 
@@ -138,12 +138,12 @@ const NoteCard = ({ note, setNotes }) => {
             <button
               key={star}
               onClick={() => user && handleRating(star)}
-              className={`transition-colors ${note.ratings?.some(r => r.user === user?.id && r.value >= star) ? "text-yellow-400" : "text-gray-400"}`}
+              className={`transition-colors text-yellow-400 ${note.ratings?.some(r => r.user === user?.id && r.value >= star) ? "opacity-100" : "opacity-30"}`}
             >
               <StarIcon className="size-5" />
             </button>
           ))}
-          <span className="text-sm ml-2">Avg Rating: {avgRating}</span>
+          <span className="text-sm ml-2 text-base-content/60">Avg Rating: {avgRating}</span>
         </div>
 
         {/* Comments */}
@@ -155,7 +155,7 @@ const NoteCard = ({ note, setNotes }) => {
                 placeholder="Add a comment..."
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                className="input input-bordered input-sm flex-1"
+                className="input input-bordered input-sm flex-1 bg-base-200"
               />
               <button type="submit" disabled={loading} className="btn btn-sm btn-primary">
                 <SendIcon className="size-4" />
@@ -166,10 +166,10 @@ const NoteCard = ({ note, setNotes }) => {
             {comments.map((c) => {
               const canDelete = user && (c.user?._id === user.id || user.role === "admin");
               return (
-                <li key={c._id} className="text-sm text-gray-600 flex justify-between items-center">
+                <li key={c._id} className="text-sm text-base-content/70 flex justify-between items-center">
                   <span>
                     • {c.content || c.text}{" "}
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-base-content/50">
                       - {c.user?.name || "Unknown"}
                     </span>
                   </span>
@@ -209,3 +209,4 @@ const NoteCard = ({ note, setNotes }) => {
 };
 
 export default NoteCard;
+

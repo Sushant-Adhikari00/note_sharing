@@ -1,5 +1,5 @@
 import { useState, useContext } from "react";
-import { ArrowLeftIcon } from "lucide-react";
+import { XIcon } from "lucide-react";
 import { useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import api from "../lib/axios";
@@ -65,60 +65,63 @@ const CreatePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 relative">
-      {/* Back button in top-left corner */}
-      <button
-        onClick={goBack}
-        className="btn btn-ghost absolute top-4 left-4 flex items-center gap-2"
-      >
-        <ArrowLeftIcon className="size-5" /> Back to Notes
-      </button>
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="card bg-base-100 shadow-md">
-            <div className="card-body">
-              <h2 className="card-title text-2xl mb-4">Create New Note</h2>
-              <form onSubmit={handleSubmit} encType="multipart/form-data">
-                <div className="form-control mb-4">
-                  <label className="label"><span className="label-text">Title</span></label>
-                  <input
-                    type="text"
-                    placeholder="Note Title"
-                    className="input input-bordered"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-control mb-4">
-                  <label className="label"><span className="label-text">Content</span></label>
-                  <textarea
-                    placeholder="Write your note here..."
-                    className="textarea textarea-bordered h-32"
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-control mb-4">
-                  <label className="label"><span className="label-text">Upload File</span></label>
-                  <input
-                    type="file"
-                    accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx"
-                    className="file-input file-input-bordered"
-                    onChange={(e) => setFile(e.target.files[0])}
-                  />
-                </div>
-
-                <div className="card-actions justify-end">
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? "Creating..." : "Create Note"}
-                  </button>
-                </div>
-              </form>
-            </div>
+    <div className="min-h-screen bg-base-200 flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        <div className="card bg-base-100 shadow-xl p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold text-primary">Create New Note</h2>
+            <button
+              onClick={goBack}
+              className="btn btn-ghost btn-sm flex items-center gap-2 text-base-content/70"
+            >
+              <XIcon className="size-4" /> Close
+            </button>
           </div>
+
+          <form onSubmit={handleSubmit} encType="multipart/form-data" className="space-y-6">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-base-content">Note Title</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter a concise title for your note"
+                className="input input-bordered w-full bg-base-200 text-base-content focus:border-primary"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-base-content">Content</span>
+              </label>
+              <textarea
+                placeholder="Write the detailed content of your note here..."
+                className="textarea textarea-bordered h-48 w-full bg-base-200 text-base-content focus:border-primary"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+              />
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text text-base-content">Upload File (PDF, JPG, PNG, PPT, PPTX)</span>
+              </label>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx"
+                className="file-input file-input-bordered w-full bg-base-200 text-base-content file-input-primary"
+                onChange={(e) => setFile(e.target.files[0])}
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
+                {loading ? <span className="loading loading-spinner"></span> : "Create Note"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
